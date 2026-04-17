@@ -132,7 +132,11 @@ async function fetchSpaEntry(request, env, next) {
             return applyNoStoreToHtmlResponse(await next());
         }
 
-        const assetsResponse = await fetchStaticAsset(new Request(indexUrl, request), env, next);
+        const assetsResponse = await fetchStaticAsset(new Request(indexUrl, {
+            method: request.method,
+            headers: headers,
+            redirect: request.redirect
+        }), env, next);
         return applyNoStoreToHtmlResponse(assetsResponse);
     }
 
@@ -232,21 +236,20 @@ export async function onRequest(context) {
                 // [新增] 动态包含自定义登录路径
                 const isSpaRoute = [
                     '/',
-                    '/groups',
-                    '/nodes',
-                    '/subscriptions',
-                    '/settings',
-                    '/login',
                     '/dashboard',
-                    '/profile',
+                    '/login',
                     '/explore',
                     customLoginPath
                 ].some(route => {
                     if (route === '/') return url.pathname === '/';
+                    if (route === '/dashboard') {
+                        return url.pathname === '/dashboard' || url.pathname.startsWith('/dashboard/');
+                    }
                     return url.pathname === route || url.pathname.startsWith(route + '/');
                 });
 
                 const isProtectedSpaRoute = isSpaRoute
+                    && url.pathname !== '/'
                     && url.pathname !== '/login'
                     && url.pathname !== customLoginPath
                     && !url.pathname.startsWith('/explore');
